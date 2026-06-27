@@ -1,0 +1,105 @@
+services:
+  neo4j:
+    image: neo4j:5.26.0
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      - NEO4J_AUTH=${NEO4J_USER:-neo4j}/${NEO4J_PASSWORD:-graphiti_neo4j_pass}
+      - NEO4J_server_memory_heap_initial__size=512m
+      - NEO4J_server_memory_heap_max__size=1G
+      - NEO4J_server_memory_pagecache_size=512m
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+    healthcheck:
+      test: ["CMD", "wget", "-O", "/dev/null", "http://localhost:7474"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Default / shared instance
+  graphiti-mcp:
+    image: graphiti-mcp:local
+    env_file:
+      - path: .env
+        required: false
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    environment:
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=${NEO4J_USER:-neo4j}
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD:-graphiti_neo4j_pass}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_API_URL=${OPENAI_API_URL:-https://openrouter.ai/api/v1}
+      - MODEL_NAME=${MODEL_NAME:-minimax/minimax-m3}
+      - EMBEDDER_MODEL=${EMBEDDER_MODEL:-text-embedding-3-small}
+      - GRAPHITI_GROUP_ID=main
+      - SEMAPHORE_LIMIT=5
+      - CONFIG_PATH=/app/mcp/config/config.yaml
+      - PATH=/root/.local/bin:${PATH}
+    volumes:
+      - ./config/config-docker-neo4j.yaml:/app/mcp/config/config.yaml:ro
+    ports:
+      - "8002:8000"
+    command: ["uv", "run", "main.py"]
+
+  # eldaa project
+  graphiti-eldaa:
+    image: graphiti-mcp:local
+    env_file:
+      - path: .env
+        required: false
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    environment:
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=${NEO4J_USER:-neo4j}
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD:-graphiti_neo4j_pass}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_API_URL=${OPENAI_API_URL:-https://openrouter.ai/api/v1}
+      - MODEL_NAME=${MODEL_NAME:-minimax/minimax-m3}
+      - EMBEDDER_MODEL=${EMBEDDER_MODEL:-text-embedding-3-small}
+      - GRAPHITI_GROUP_ID=eldaa
+      - SEMAPHORE_LIMIT=5
+      - CONFIG_PATH=/app/mcp/config/config.yaml
+      - PATH=/root/.local/bin:${PATH}
+    volumes:
+      - ./config/config-docker-neo4j.yaml:/app/mcp/config/config.yaml:ro
+    ports:
+      - "8003:8000"
+    command: ["uv", "run", "main.py"]
+
+  # re-member project
+  graphiti-re-member:
+    image: graphiti-mcp:local
+    env_file:
+      - path: .env
+        required: false
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    environment:
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=${NEO4J_USER:-neo4j}
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD:-graphiti_neo4j_pass}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_API_URL=${OPENAI_API_URL:-https://openrouter.ai/api/v1}
+      - MODEL_NAME=${MODEL_NAME:-minimax/minimax-m3}
+      - EMBEDDER_MODEL=${EMBEDDER_MODEL:-text-embedding-3-small}
+      - GRAPHITI_GROUP_ID=re-member
+      - SEMAPHORE_LIMIT=5
+      - CONFIG_PATH=/app/mcp/config/config.yaml
+      - PATH=/root/.local/bin:${PATH}
+    volumes:
+      - ./config/config-docker-neo4j.yaml:/app/mcp/config/config.yaml:ro
+    ports:
+      - "8004:8000"
+    command: ["uv", "run", "main.py"]
+
+volumes:
+  neo4j_data:
+  neo4j_logs:
